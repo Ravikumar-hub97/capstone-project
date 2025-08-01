@@ -20,14 +20,15 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    dockerImage = docker.build("react-app:${env.ACTUAL_BRANCH}")
-                }
-            }
-        }
-
+	stage('Push Docker Image') {
+    			steps {
+        			script {
+            				docker.withRegistry('', 'dockerhub-credentials-id') {
+                			dockerImage.push("${env.BRANCH_NAME}")
+            			}
+        		}
+    		}
+	}
         stage('Push Docker Image') {
             steps {
                 script {
