@@ -3,15 +3,14 @@ pipeline {
 
     environment {
         DOCKERHUB_USERNAME = 'ravikumar1997'
-        DEV_REPO = "${DOCKERHUB_USERNAME}/dev"
-        PROD_REPO = "${DOCKERHUB_USERNAME}/prod"
+        DOCKERHUB_CREDENTIALS_ID = 'dockerhub-credentials-id'
     }
 
     stages {
         stage('Checkout Code') {
             steps {
                 script {
-                    // Determine the branch name dynamically
+                    // Dynamically determine the branch name (fallback to 'dev')
                     def branch = env.GIT_BRANCH?.replaceFirst(/^origin\//, '') ?: 'dev'
                     env.ACTUAL_BRANCH = branch
 
@@ -20,12 +19,21 @@ pipeline {
             }
         }
 
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    // Build the Docker image and assign to global variable
+                    env.IMAGE_TAG = "${DOCKERHUB_USERNAME}/${env.ACTUAL_BRANCH}"
+                    dockerImage = docker.build(env.IMAGE_TAG)
+                }
+            }
+        }
+
         stage('Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry('', 'dockerhub-credentials-id') {
-			dockerImage.push("${env.ACTUAL_BRANCH}")
-
+                    docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS_ID) {
+                        dockerImage.push()
                     }
                 }
             }
@@ -34,11 +42,11 @@ pipeline {
         stage('Deploy Locally') {
             steps {
                 script {
-                    sh '''
+                    sh """
                         docker stop react-app || true
                         docker rm react-app || true
-                        docker run -d -p 80:80 --name react-app ${DOCKERHUB_USERNAME}/${ACTUAL_BRANCH}
-                    '''
+                        docker run -d -p 80:80 --name react-app ${env.IMAGE_TAG}
+                    """
                 }
             }
         }
