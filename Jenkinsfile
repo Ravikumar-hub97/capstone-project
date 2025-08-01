@@ -20,24 +20,12 @@ pipeline {
             }
         }
 
-	stage('Push Docker Image') {
-    			steps {
-        			script {
-            				docker.withRegistry('', 'dockerhub-credentials-id') {
-                			dockerImage.push("${env.BRANCH_NAME}")
-            			}
-        		}
-    		}
-	}
         stage('Push Docker Image') {
             steps {
                 script {
                     docker.withRegistry('', 'dockerhub-credentials-id') {
-                        if (env.ACTUAL_BRANCH == 'dev') {
-                            dockerImage.push("dev")
-                        } else if (env.ACTUAL_BRANCH == 'master') {
-                            dockerImage.push("prod")
-                        }
+			dockerImage.push("${env.ACTUAL_BRANCH}")
+
                     }
                 }
             }
