@@ -10,14 +10,20 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: "${env.BRANCH_NAME}", url: 'https://github.com/Ravikumar-hub97/capstone-project.git'
+                script {
+                    // Determine the branch name dynamically
+                    def branch = env.GIT_BRANCH?.replaceFirst(/^origin\//, '') ?: 'dev'
+                    env.ACTUAL_BRANCH = branch
+
+                    git branch: branch, url: 'https://github.com/Ravikumar-hub97/capstone-project.git'
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 script {
-                    dockerImage = docker.build("react-app:${env.BRANCH_NAME}")
+                    dockerImage = docker.build("react-app:${env.ACTUAL_BRANCH}")
                 }
             }
         }
@@ -26,9 +32,9 @@ pipeline {
             steps {
                 script {
                     docker.withRegistry('', 'dockerhub-credentials-id') {
-                        if (env.BRANCH_NAME == 'dev') {
+                        if (env.ACTUAL_BRANCH == 'dev') {
                             dockerImage.push("dev")
-                        } else if (env.BRANCH_NAME == 'master') {
+                        } else if (env.ACTUAL_BRANCH == 'master') {
                             dockerImage.push("prod")
                         }
                     }
@@ -42,7 +48,7 @@ pipeline {
                     sh '''
                         docker stop react-app || true
                         docker rm react-app || true
-                        docker run -d -p 80:80 --name react-app ${DOCKERHUB_USERNAME}/$BRANCH_NAME
+                        docker run -d -p 80:80 --name react-app ${DOCKERHUB_USERNAME}/${ACTUAL_BRANCH}
                     '''
                 }
             }
