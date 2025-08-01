@@ -19,25 +19,35 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
-            steps {
-                script {
-                    // Build the Docker image and assign to global variable
-                    env.IMAGE_TAG = "${DOCKERHUB_USERNAME}/${env.ACTUAL_BRANCH}"
-                    dockerImage = docker.build(env.IMAGE_TAG)
-                }
-            }
-        }
 
-        stage('Push Docker Image') {
-            steps {
-                script {
-                    docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS_ID) {
-                        dockerImage.push()
-                    }
-                }
+
+stage('Build Docker Image') {
+    steps {
+        script {
+            if (env.ACTUAL_BRANCH == 'master') {
+                env.IMAGE_TAG = "${DOCKERHUB_USERNAME}/prod"
+            } else if (env.ACTUAL_BRANCH == 'dev') {
+                env.IMAGE_TAG = "${DOCKERHUB_USERNAME}/dev"
+            } else {
+                error("Unsupported branch: ${env.ACTUAL_BRANCH}")
+            }
+
+            // Build the Docker image and assign to global variable
+            dockerImage = docker.build(env.IMAGE_TAG)
+        }
+    }
+}
+
+stage('Push Docker Image') {
+    steps {
+        script {
+            docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS_ID) {
+                dockerImage.push()
             }
         }
+    }
+}
+
 
         stage('Deploy Locally') {
             steps {
