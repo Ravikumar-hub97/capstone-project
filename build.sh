@@ -1,2 +1,2 @@
 #!/bin/bash
-docker build -t Ravikumar1997/dev:latest .
+docker build -t ravikumar1997/dev:latest .
